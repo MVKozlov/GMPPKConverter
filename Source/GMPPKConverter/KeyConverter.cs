@@ -25,9 +25,15 @@ namespace GMax.Security
         /// </summary>
         private int index = 0;
 
-        public KeyConverter()
-        {
+        private Encoding commentEncoding;
 
+        public KeyConverter(int ImportCodePage = 0)
+        {
+            if (ImportCodePage <= 0)
+            {
+                ImportCodePage = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage;
+            }
+            commentEncoding = Encoding.GetEncoding(ImportCodePage);
         }
 
         #region Private methods
@@ -40,9 +46,9 @@ namespace GMax.Security
                 throw new FormatException($"Line {index} is invalid, only Version 2 or 3 supported");
             return (version, match.Groups[2].Value);
         }
-        private string ReadLine(string[] lines, string Token)
+        private string ReadLine(string[] lines, string Token, bool strictRegex = true)
         {
-            var match = Regex.Match(lines[index++], $@"{Token}:\s+([-\w]+)");
+            var match = strictRegex ? Regex.Match(lines[index++], $@"{Token}:\s+([-\w\.]+)") : Regex.Match(lines[index++], $@"{Token}:\s+(.+)");
             if (match.Success)
                 return match.Groups[1].Value;
             else
@@ -133,7 +139,7 @@ namespace GMax.Security
             }
 
             ppkParams.Encryption = ReadLine(lines, "Encryption");
-            ppkParams.Comment = ReadLine(lines, "Comment");
+            ppkParams.Comment = ReadLine(lines, "Comment", strictRegex: false);
             ppkParams.publicPart = ReadBlock(lines, "Public-Lines");
 
             if (ppkParams.Version >= 3 && !ppkParams.Encryption.Equals("none")) {
@@ -172,7 +178,7 @@ namespace GMax.Security
                 securePassword.Clear();
             }
 
-            string hash = ppkParams.ComputeHash(securePassword);
+            string hash = ppkParams.ComputeHash(securePassword, commentEncoding);
             if (!hash.Equals(ppkParams.PrivateMAC))
                 if (ppkParams.Encryption.Equals("none"))
                     throw new ArgumentException("Key was modified");

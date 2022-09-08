@@ -16,7 +16,7 @@ namespace TestPPKConverting
             {
                 var ppkpath = args[0];
                 var password = args.Length == 2 ? args[1] : "";
-                var lines = File.ReadAllLines(ppkpath);
+                var lines = File.ReadAllLines(ppkpath, System.Text.Encoding.Default);
                 Console.WriteLine($" Read PPK from {ppkpath}");
                 SecureString secpass = new SecureString();
                 foreach (char c in password)

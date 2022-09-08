@@ -195,7 +195,7 @@ Oma4bwKGc3NJo7diy5QJ67cWwY5MLA==
 Private-MAC: b87aa5774961a47d2addd0191a822bbbdd6229e18ba136c87791e7fad19607f7
 ";
 
-        internal static string result_ECDSA_openssh_3 = @"
+    internal static string result_ECDSA_openssh_3 = @"
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNl
 Y2RzYS1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQAs0GROzI+ucmSDcQu

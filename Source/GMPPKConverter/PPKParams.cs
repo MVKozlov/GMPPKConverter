@@ -102,7 +102,7 @@ namespace GMax.Security
             }
         }
 
-        public string ComputeHash(SecureString securePassword)
+        public string ComputeHash(SecureString securePassword, Encoding commentEncoding)
         {
             string hash;
 
@@ -113,7 +113,7 @@ namespace GMax.Security
                 {
                     AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes(KeyType));
                     AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes(Encryption));
-                    AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes(Comment));
+                    AsymmetricKeyHelpers.WriteWithLength(bw, commentEncoding.GetBytes(Comment));
                     AsymmetricKeyHelpers.WriteWithLength(bw, publicPart);
                     AsymmetricKeyHelpers.WriteWithLength(bw, privatePart);
                 }

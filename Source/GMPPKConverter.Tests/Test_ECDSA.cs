@@ -13,6 +13,7 @@ namespace GMPPKConverter.Tests
         public void Test_ECDSA_PrivateKey(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_ECDSA_private.Replace("\r", "").TrimStart();
@@ -49,6 +50,7 @@ namespace GMPPKConverter.Tests
         public void Test_ECDSA_2_PrivateKey(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_ECDSA_private_2.Replace("\r", "").TrimStart();
@@ -103,6 +105,7 @@ namespace GMPPKConverter.Tests
         public void Test_ECDSA_3_OpenSSH(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_ECDSA_openssh_3.Replace("\r", "").TrimStart();
@@ -142,6 +145,7 @@ namespace GMPPKConverter.Tests
         public void Test3_EncryptedECDSA_ArgonBadPassword(string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = TestData.ppk_ECDSA3_test.TrimStart().Split("\r\n");
 
@@ -160,6 +164,7 @@ namespace GMPPKConverter.Tests
         public void Test3_EncryptedECDSA_BadPassword(string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = TestData.ppk_ECDSA3_test.TrimStart().Split("\r\n");
 

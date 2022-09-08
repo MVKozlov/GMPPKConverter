@@ -6,17 +6,17 @@ using Xunit;
 
 namespace GMPPKConverter.Tests
 {
-    public class Test_DSA
+    public class Test_CommentCodePage
     {
         [Theory]
-        [MemberData(nameof(TestData.Data_DSA), MemberType =typeof(TestData))]
-        public void Test_DSA_PrivateKey(string keyData, string password)
+        [InlineData("test")]
+        public void Test3_EncryptedECDSA_Loose_Comment_2(string password)
         {
             // arrange
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
-            string[] key = keyData.TrimStart().Split("\r\n");
-            string expected = TestData.result_DSA_private.Replace("\r", "").TrimStart();
+            string[] key = TestData.ppk_ECDSA_test_comment_2.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
 
             // act
             var ppk = new KeyConverter();
@@ -28,34 +28,33 @@ namespace GMPPKConverter.Tests
         }
 
         [Theory]
-        [MemberData(nameof(TestData.Data_DSA), MemberType = typeof(TestData))]
-        public void Test_DSA_OpenSSH(string keyData, string password)
+        [InlineData("test")]
+        public void Test3_EncryptedECDSA_Loose_Comment_3(string password)
         {
             // arrange
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
-            string[] key = keyData.TrimStart().Split("\r\n");
-            string expected = TestData.result_DSA_openssh.Replace("\r", "").TrimStart();
+            string[] key = TestData.ppk_ECDSA_test_comment_3.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
 
             // act
             var ppk = new KeyConverter();
             ppk.ImportPPK(key, secPass);
-            string result = ppk.ExportOpenSSH();
+            string result = ppk.ExportPrivateKey();
 
             // assert
             Assert.Equal(expected, result);
         }
 
         [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData("тест")]
-        public void Test2_EncryptedDSA_BadPassword(string password)
+        [InlineData("badtest")]
+        public void Test3_EncryptedECDSA_Bad_Comment_2(string password)
         {
             // arrange
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
-            string[] key = TestData.ppk_DSA2_test.TrimStart().Split("\r\n");
+            string[] key = TestData.ppk_ECDSA_test_comment_2.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
 
             // act
             var ppk = new KeyConverter();
@@ -68,14 +67,14 @@ namespace GMPPKConverter.Tests
         }
 
         [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        public void Test3_EncryptedDSA_ArgonBadPassword(string password)
+        [InlineData("badtest")]
+        public void Test3_EncryptedECDSA_Comment_3(string password)
         {
             // arrange
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
-            string[] key = TestData.ppk_DSA3_test.TrimStart().Split("\r\n");
+            string[] key = TestData.ppk_ECDSA_test_comment_3.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
 
             // act
             var ppk = new KeyConverter();
@@ -84,20 +83,41 @@ namespace GMPPKConverter.Tests
             // assert
             ArgumentException exception = Assert.Throws<ArgumentException>(act);
             //The thrown exception can be used for even more detailed assertions.
-            Assert.Equal("Argon2 needs a password set (Parameter 'password')", exception.Message);
+            Assert.Equal("Bad password", exception.Message);
         }
 
         [Theory]
-        [InlineData("тест")]
-        public void Test3_EncryptedDSA_BadPassword(string password)
+        [InlineData("test")]
+        public void Test3_EncryptedECDSA_Bad_Comment_2_cp(string password)
         {
             // arrange
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
-            string[] key = TestData.ppk_DSA3_test.TrimStart().Split("\r\n");
+            string[] key = TestData.ppk_ECDSA_test_comment_2.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
 
             // act
-            var ppk = new KeyConverter();
+            var ppk = new KeyConverter(1252);
+            Action act = () => ppk.ImportPPK(key, secPass);
+
+            // assert
+            ArgumentException exception = Assert.Throws<ArgumentException>(act);
+            //The thrown exception can be used for even more detailed assertions.
+            Assert.Equal("Bad password", exception.Message);
+        }
+
+        [Theory]
+        [InlineData("test")]
+        public void Test3_EncryptedECDSA_Comment_3_cp(string password)
+        {
+            // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            SecureString secPass = TestData.GetPassword(password);
+            string[] key = TestData.ppk_ECDSA_test_comment_3.TrimStart().Split("\r\n");
+            string expected = TestData.result_ECDSA_test_comment.Replace("\r", "").TrimStart();
+
+            // act
+            var ppk = new KeyConverter(1252);
             Action act = () => ppk.ImportPPK(key, secPass);
 
             // assert

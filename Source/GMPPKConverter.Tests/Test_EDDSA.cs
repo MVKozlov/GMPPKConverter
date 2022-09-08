@@ -13,6 +13,7 @@ namespace GMPPKConverter.Tests
         public void Test_EDDSA_PrivateKey(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_EDDSA_private.Replace("\r", "").TrimStart();
@@ -31,6 +32,7 @@ namespace GMPPKConverter.Tests
         public void Test_EDDSA_OpenSSH(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_EDDSA_openssh.Replace("\r", "").TrimStart();
@@ -49,6 +51,7 @@ namespace GMPPKConverter.Tests
         public void Test_EDDSA_PrivateKey_2(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_EDDSA_private_2.Replace("\r", "").TrimStart();
@@ -67,6 +70,7 @@ namespace GMPPKConverter.Tests
         public void Test_EDDSA_OpenSSH_2(string keyData, string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = keyData.TrimStart().Split("\r\n");
             string expected = TestData.result_EDDSA_openssh_2.Replace("\r", "").TrimStart();
@@ -87,6 +91,7 @@ namespace GMPPKConverter.Tests
         public void Test2_EncryptedEDDSA_BadPassword(string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = TestData.ppk_EDDSA2_test.TrimStart().Split("\r\n");
 
@@ -106,6 +111,7 @@ namespace GMPPKConverter.Tests
         public void Test3_EncryptedEDDSA_ArgonBadPassword(string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = TestData.ppk_EDDSA3_test.TrimStart().Split("\r\n");
 
@@ -124,6 +130,7 @@ namespace GMPPKConverter.Tests
         public void Test3_EncryptedEDDSA_BadPassword(string password)
         {
             // arrange
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             SecureString secPass = TestData.GetPassword(password);
             string[] key = TestData.ppk_EDDSA3_test.TrimStart().Split("\r\n");
 
