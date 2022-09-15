@@ -10,10 +10,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPPKConverting", "TestPP
 		{8D08A965-C576-4A42-86C6-A0429F386A74} = {8D08A965-C576-4A42-86C6-A0429F386A74}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GMPPKConverter.Tests", "GMPPKConverter.Tests\GMPPKConverter.Tests.csproj", "{D8074B8D-B220-4643-9968-DDE944ED88F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GMPPKConverter.Tests", "GMPPKConverter.Tests\GMPPKConverter.Tests.csproj", "{D8074B8D-B220-4643-9968-DDE944ED88F2}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8D08A965-C576-4A42-86C6-A0429F386A74} = {8D08A965-C576-4A42-86C6-A0429F386A74}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseOpenSShKey", "ParseOpenSShKey\ParseOpenSShKey.csproj", "{FDC69595-8405-42B0-9E80-FBE1C1ADDA60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{D8074B8D-B220-4643-9968-DDE944ED88F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8074B8D-B220-4643-9968-DDE944ED88F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8074B8D-B220-4643-9968-DDE944ED88F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDC69595-8405-42B0-9E80-FBE1C1ADDA60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDC69595-8405-42B0-9E80-FBE1C1ADDA60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDC69595-8405-42B0-9E80-FBE1C1ADDA60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDC69595-8405-42B0-9E80-FBE1C1ADDA60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

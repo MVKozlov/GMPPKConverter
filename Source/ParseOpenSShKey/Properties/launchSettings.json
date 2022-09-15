@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ParseOpenSShKey": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\Work\\cs\\GMPPKConverter\\testfiles\\111 "
+    }
+  }
+}
