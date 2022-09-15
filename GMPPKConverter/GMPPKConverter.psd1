@@ -13,7 +13,7 @@
 RootModule = 'GMPPKConverter'
 
 # Version number of this module.
-ModuleVersion = '1.0.1.0'
+ModuleVersion = '1.1.0.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -31,7 +31,8 @@ CompanyName = 'NA'
 Copyright = '(c) 2022 Max Kozlov. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Putty Key Converter'
+Description = 'Putty Key Converter.
+Converting PPK to PEM/OpenSSH private key format to use e.g. with Posh-SSH module'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '5.1'
@@ -98,7 +99,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags = @('Powershell','SSH', 'Putty', 'PPK')
+        Tags = @('Powershell','SSH', 'Putty', 'PPK', 'OpenSSH', 'PEM')
 
         # A URL to the license for this module.
         LicenseUri = 'https://opensource.org/licenses/MIT'
@@ -129,4 +130,3 @@ PrivateData = @{
 # DefaultCommandPrefix = ''
 
 }
-

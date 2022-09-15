@@ -1,45 +1,62 @@
 ﻿<#
     .SYNOPSIS
-        Convert PPK key format to OpenSSH key format or Private key format
-    .SYNOPSIS
-        Convert PPK key format to OpenSSH key format or Private key format
-        Provate key UNENCRYPTED
+        Convert PPK key format to OpenSSH key format or Private(PEM) key format
+    .DESCRIPTION
+        Convert PPK key format to OpenSSH key format or Private(PEM) key format
+        Converted key can be used with, for example, Posh-SSH module as -KeyString parameter value
     .PARAMETER KeyContent
         PPK key file content
-    .PARAMETER AsPrivate
-        Output key in private key format
+    .PARAMETER AsPEM
+        Output key in PEM(private) key format
     .PARAMETER AsOpenSSH
-        Output key in openssh key format
+        Output key in OpenSSH key format
     .PARAMETER Password
         PPK Key Password
+            Note. Non-ASCII passwords does not work under linux
+    .PARAMETER OutPassword
+        PEM/OpenSSH Key Password
+        if not set, uses Password
+            Note. Non-ASCII passwords does not work under linux
     .PARAMETER CodePage
-        PPK Key content codepage, if 0 - use current console codepage
-            Note: It mandatory under linux because modern default linux codepage is utf-8
-            and Putty save file under windows non-utf code page, for example 1251
+        PPK Key content codepage, 0 - use current console codepage
+            Note. This parameter is required on Linux because the modern Linux code page is utf-8 by default.
+            but Putty saves the key file under windows with non-utf codepage, like 1251
+    .PARAMETER Unprotected
+        Out UNPROTECTED key
     .OUTPUTS
-        Converted key
+        Private key converted to PEM/OpenSSH
     .EXAMPLE
+        # Read key from file and use it with New-SSHSession
+
         # ppk password from user input
-        $c = Get-Credential xxx
-        # default windows cyrillic encoding
-        $encoding = [Text.Encoding]::getEncoding(1251)
+        $cred = Get-Credential
+
         # Read key from file and convert it to OpenSSH format
+        $KeyString = Get-Content D:\Putty.ppk | ConvertFrom-PPK -AsPEM -Password $cred.Password
+
+        # Use converted key for opening SSH Session
+        New-SSHSession -ComputerName my-server -Credentials $cred -KeyString $KeyString
+    .EXAMPLE
+        # Read key from file with selected encoding and convert in to OpenSSH format
+
+        # default windows cyrillic encoding
+        $encoding = [Text.Encoding]::getEncoding(1251)
+
+        $c = Get-Credential xxx
         $content = Get-Content /home/username/test.ppk -Encoding $encoding
-        ConvertFrom-PPK -AsOpenSSH -Password $c.Password -KeyContent $content -CodePage 1251
+        ConvertFrom-PPK -AsOpenSSH -Password $c.Password -KeyContent $content -CodePage $encoding.CodePage
     .EXAMPLE
-        # ppk password from user input
+        # Read key from file and convert in to PEM format thru pipeline with different password
+
         $c = Get-Credential xxx
-        # default windows cyrillic encoding
-        $encoding = [Text.Encoding]::getEncoding(1251)
-        # Read key from file and send it to convert to Private key format thru pipeline
-        Get-Content /home/username/test.ppk -Encoding $encoding |
-            ConvertFrom-PPK -AsPrivate -Password $c.Password -CodePage 1251
+        $out_c = Get-Credential out
+        Get-Content /home/username/test.ppk |
+            ConvertFrom-PPK -AsPEM -Password $c.Password -OutPassword $out_c.Password
     .EXAMPLE
-        # ppk password from user input
+        # Read key from string and convert in to PEM format thru pipeline with selected encoding
+
         $c = Get-Credential xxx
-        # default windows cyrillic encoding
-        $encoding = [Text.Encoding]::getEncoding(1251)
-        # Read key from file and send it to convert to Private key format thru pipeline
+
         "PuTTY-User-Key-File-2: ecdsa-sha2-nistp384
         Encryption: aes256-cbc
         Comment: test тест
@@ -51,19 +68,24 @@
         FRV4NgRMeOI9yILJko1WP6LZbChiEl+SxvGkto4gcMPovyN47gmM5My186IMrVh7
         8224AVCFz61Vhby3JsIHBA==
         Private-MAC: 6f85e47ea4ef3083110eb0ab700e4f8201348b8a
-        " -split "\n" | ConvertFrom-PPK -AsPrivate -Password $c.Password -CodePage 1251
+        " -split "\n" |
+            ConvertFrom-PPK -AsPEM -Password $c.Password -CodePage 1251
 #>
 function ConvertFrom-PPK {
 [CmdletBinding()]
 param(
     [Parameter(Position=0, ValueFromPipeline)]
     [string[]]$KeyContent,
-    [Parameter(ParameterSetName="p")]
-    [switch]$AsPrivate,
-    [Parameter(ParameterSetName="o")]
+    [Parameter(ParameterSetName="pem")]
+    [Alias('AsPrivate')]
+    [switch]$AsPEM,
+    [Parameter(ParameterSetName="openssh")]
     [switch]$AsOpenSSH,
     [Parameter(Position=1)]
     [SecureString]$Password,
+    [SecureString]$OutPassword = $null,
+    [bool]$Unprotected = $false,
+    [Parameter()]
     [int]$CodePage = 0
 )
     BEGIN {
@@ -80,13 +102,23 @@ param(
             Add-Type -Path "$PSScriptRoot\GMPPKConverter.dll"
         }
         try {
+            Write-Verbose "Use CodePage $CodePage"
             $ppk = New-Object GMax.Security.KeyConverter $CodePage
-            $ppk.ImportPPK($key, $password)
-            if ($PSCmdlet.ParameterSetName -eq 'p') {
-                $ppk.ExportPrivateKey()
+            $ppk.ImportPPK($key, $Password)
+            if (-not $Unprotected -and -not $OutPassword) {
+                Write-Verbose "Use Password as Output Password"
+                $OutPassword = $Password
+            }
+            elseif ($Unprotected) {
+                Write-Warning "Output key is UNPROTECTED"
+            }
+            if ($PSCmdlet.ParameterSetName -in 'pem', "pem_unprot") {
+                Write-Verbose "Export private key in PEM format"
+                $ppk.ExportPrivateKey($OutPassword)
             }
             else {
-                $ppk.ExportOpenSSH()
+                Write-Verbose "Export private key in OpenSSH format"
+                $ppk.ExportOpenSSH($OutPassword)
             }
         }
         catch {
