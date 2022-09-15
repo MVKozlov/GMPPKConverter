@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace GMax.Security
 {
-    internal static class Helpers
+    internal static partial class Helpers
     {
         internal static byte[] AESDecrypt(byte[] Data, byte[] IV, byte[] keyBytes)
         {
@@ -18,29 +18,96 @@ namespace GMax.Security
             {
                 cipher.KeySize = 256;
                 cipher.Mode = CipherMode.CBC;
-                try
+                cipher.Padding = PaddingMode.None;
+                cipher.Key = keyBytes;
+                cipher.IV = IV;
+                using (ICryptoTransform decryptor = cipher.CreateDecryptor())
                 {
-                    cipher.Padding = PaddingMode.None;
-                    cipher.Key = keyBytes;
-                    cipher.IV = IV;
-                    using (ICryptoTransform decryptor = cipher.CreateDecryptor())
-                    {
-                        decrypted = decryptor.TransformFinalBlock(Data, 0, Data.Length);
-                    }
-                }
-                catch // (Exception ex)
-                {
-                    //TODO?
-                    return new byte[0];
-                }
-                finally
-                {
-                    cipher.Clear();
+                    decrypted = decryptor.TransformFinalBlock(Data, 0, Data.Length);
                 }
                 return decrypted;
             }
         }
 
+        internal static byte[] AESEncrypt(byte[] Data, byte[] IV, byte[] keyBytes)
+        {
+            byte[] encrypted;
+
+            using (AesManaged cipher = new AesManaged())
+            {
+                cipher.KeySize = 256;
+                cipher.Mode = CipherMode.CBC;
+                cipher.Padding = PaddingMode.None;
+                cipher.Key = keyBytes;
+                cipher.IV = IV;
+                using (ICryptoTransform encryptor = cipher.CreateEncryptor())
+                {
+                    encrypted = encryptor.TransformFinalBlock(Data, 0, Data.Length);
+                }
+                return encrypted;
+            }
+        }
+
+        // https://git.tartarus.org/?p=simon/putty.git;a=blob;f=import.c;hb=75cd6c8b2703137e574223d90d2f3ead9ca34acc
+        //  777 static bool openssh_pem_write(
+        //  986     if (passphrase) {
+        internal static byte[] CryptPEM(byte[] Data, byte[] IV, SecureString securePassword)
+        {
+            byte[] keyBytes;
+            byte[] salt = new byte[8];
+            Array.Copy(IV, salt, 8);
+            using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
+            {
+                keyBytes = ProcessSecureStringAnsi(securePassword,
+                    (passwordBytes) =>
+                    {
+                        var keyBuffer = new byte[32];
+                        var tmp = new byte[16 + passwordBytes.Length + salt.Length];
+                        passwordBytes.CopyTo(tmp, 16);
+                        salt.CopyTo(tmp, 16 + passwordBytes.Length);
+                        var pass1 = md5.ComputeHash(tmp, 16, tmp.Length - 16);
+                        pass1.CopyTo(keyBuffer, 0);
+                        pass1.CopyTo(tmp, 0);
+                        var pass2 = md5.ComputeHash(tmp);
+                        pass2.CopyTo(keyBuffer, 16);
+                        return keyBuffer;
+                    }
+                );
+            }
+            // make padding
+            byte padCount = (byte)(16 - Data.Length % 16);
+            if (padCount == 0) padCount = 16;
+            var buffer = new byte[Data.Length + padCount];
+            Data.CopyTo(buffer, 0);
+            for (int i = Data.Length; i < buffer.Length; i++)
+            {
+                buffer[i] = padCount;
+            }
+            var encrypted = AESEncrypt(buffer, IV, keyBytes);
+            return encrypted;
+        }
+
+        internal static byte[] CryptOpenSSH(byte[] Data, byte[] salt, int rounds, SecureString securePassword)
+        {
+            byte[] keyBytes = ProcessSecureStringAnsi(securePassword,
+                (passwordBytes) =>
+                {
+                    byte[] keyiv = new byte[48];
+                    new BCrypt().Pbkdf(passwordBytes, salt, rounds, keyiv);
+                    return keyiv;
+                }
+            );
+
+            byte[] key = new byte[32];
+            Array.Copy(keyBytes, 0, key, 0, 32);
+            byte[] iv = new byte[16];
+            Array.Copy(keyBytes, 32, iv, 0, 16);
+
+            byte[] encryptedBytes = null;
+            //encryptedBytes = AESEncryptCtr(Data, iv, key);
+            encryptedBytes = AESEncrypt(Data, iv, key);
+            return encryptedBytes;
+        }
         internal static T ProcessSecureStringAnsi<T>(SecureString src, Func<byte[], T> func, byte[] arrayPrefix = null)
         {
             IntPtr unmanagedBytes = IntPtr.Zero;

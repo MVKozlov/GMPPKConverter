@@ -28,9 +28,14 @@ namespace TestPPKConverting
 
                 var cert1 = ppk.ExportPrivateKey();
                 var cert2 = ppk.ExportOpenSSH();
+                var cert3 = ppk.ExportPrivateKey(secpass);
+                var cert4 = ppk.ExportOpenSSH(secpass);
 
                 Console.WriteLine(cert1);
                 Console.WriteLine(cert2);
+                Console.WriteLine(cert3);
+                Console.WriteLine(cert4);
+
             }
         }
     }

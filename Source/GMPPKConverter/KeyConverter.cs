@@ -3,11 +3,29 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace GMax.Security
 {
+    public interface IRandomNumberGenerator
+    {
+        void Fill(byte[] buffer);
+    }
+    internal class GMRandomNumberGenerator : IRandomNumberGenerator
+    {
+        private RandomNumberGenerator rng;
+        public GMRandomNumberGenerator()
+        {
+            rng = RandomNumberGenerator.Create();
+        }
+        public void Fill(byte[] buffer)
+        {
+            rng.GetBytes(buffer);
+        }
+    }
+
     public class KeyConverter
     {
         /// <summary>
@@ -27,6 +45,8 @@ namespace GMax.Security
 
         private Encoding commentEncoding;
 
+        public IRandomNumberGenerator Rng;
+
         public KeyConverter(int ImportCodePage = 0)
         {
             if (ImportCodePage <= 0)
@@ -34,6 +54,7 @@ namespace GMax.Security
                 ImportCodePage = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage;
             }
             commentEncoding = Encoding.GetEncoding(ImportCodePage);
+            Rng = new GMRandomNumberGenerator();
         }
 
         #region Private methods
@@ -98,7 +119,7 @@ namespace GMax.Security
         /// <param name="securePassword">PPK passphrase</param>
         /// <exception cref="NotSupportedException">Not supported asymmetric key</exception>
         /// <exception cref="FormatException">PPK format errors</exception>
-        public void ImportPPK(string[] lines, SecureString securePassword)
+        public void ImportPPK(string[] lines, SecureString securePassword = null)
         {
             ppkParams = new PPKParams();
 
@@ -175,7 +196,7 @@ namespace GMax.Security
 
             if (ppkParams.Encryption.Equals("none") && securePassword?.Length > 0)
             {
-                securePassword.Clear();
+                securePassword = new SecureString();
             }
 
             string hash = ppkParams.ComputeHash(securePassword, commentEncoding);
@@ -189,11 +210,12 @@ namespace GMax.Security
         }
 
         /// <summary>
-        /// Exports private key to UNPROTECTED PEM form
+        /// Exports private key to PEM form
         /// </summary>
-        /// <returns>UNPROTECTED Private Key as multiline string</returns>
+        /// <param name="securePassword">passphrase</param>
+        /// <returns>Private Key as multiline string</returns>
         /// <exception cref="NotImplementedException">Unsupported key format</exception>
-        public string ExportPrivateKey()
+        public string ExportPrivateKey(SecureString securePassword = null)
         {
             var sb = new StringBuilder();
             string keyEnd = string.Empty;
@@ -227,7 +249,19 @@ namespace GMax.Security
                         (bw1) => keyParams.ExportPrivateKeyAsASN1(bw1)
                     );
                 }
-                sb.Append(Helpers.SplitBase64(ms.ToArray(), 64));
+                if (securePassword == null)
+                {
+                    sb.Append(Helpers.SplitBase64(ms.ToArray(), 64));
+                }
+                else
+                {
+                    byte[] iv = new byte[16];
+                    Rng.Fill(iv);
+                    var data = Helpers.CryptPEM(ms.ToArray(), iv, securePassword);
+                    sb.Append("Proc-Type: 4,ENCRYPTED\n");
+                    sb.Append("DEK-Info: AES-256-CBC," + BitConverter.ToString(iv).Replace("-", "") + "\n\n");
+                    sb.Append(Helpers.SplitBase64(data, 64));
+                }
             }
 
             sb.Append(keyEnd);
@@ -235,25 +269,50 @@ namespace GMax.Security
         }
 
         /// <summary>
-        /// Exports private key as UNPROTECTED OpenSSH PEM
+        /// Exports private key as OpenSSH PEM
         /// </summary>
-        /// <returns>private key as UNPROTECTED OpenSSH PEM multiline string</returns>
-        public string ExportOpenSSH()
+        /// <param name="securePassword">passphrase</param>
+        /// <returns>private key as OpenSSH PEM multiline string</returns>
+        public string ExportOpenSSH(SecureString securePassword = null)
         {
-            // https://git.tartarus.org/?p=simon/putty.git;a=blob_plain;f=import.c;hb=c0fba758e60e2ff4c1bebd566d9a0e56276d07ec
+            // https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.key
+            // https://git.tartarus.org/?p=simon/putty.git;a=blob;f=import.c;hb=75cd6c8b2703137e574223d90d2f3ead9ca34acc#l1480
             // static bool openssh_new_write
             var sb = new StringBuilder("-----BEGIN OPENSSH PRIVATE KEY-----\n");
             string keyEnd = "\n-----END OPENSSH PRIVATE KEY-----\n";
+            int rounds = 16;
+            byte[] salt = new byte[16];
             using (var ms = new MemoryStream())
             {
                 using (var bw = new BinaryWriter(ms))
                 {
                     // writing info headers
                     bw.Write(Encoding.ASCII.GetBytes("openssh-key-v1\0"));
-                    AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("none")); //kdfname
-                    AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("none"));
-                    var kdfoptions = new byte[0];
-                    AsymmetricKeyHelpers.WriteWithLength(bw, kdfoptions);
+                    if (securePassword == null)
+                    {
+                        AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("none")); // cipherName
+                        AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("none")); // kdfname
+                        var kdfoptions = new byte[0]; // salt (str), rounds
+                        AsymmetricKeyHelpers.WriteWithLength(bw, kdfoptions);
+                    }
+                    else
+                    {
+                        //aes256-ctr bcrypt
+                        //AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("aes256-ctr")); // cipherName
+                        AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("aes256-cbc")); // cipherName
+                        AsymmetricKeyHelpers.WriteWithLength(bw, Encoding.ASCII.GetBytes("bcrypt")); // kdfname
+                        Rng.Fill(salt);
+                        // kdfoptions: salt (str), rounds
+                        using (var ms1 = new MemoryStream())
+                        {
+                            using (var bw1 = new BinaryWriter(ms1))
+                            {
+                                AsymmetricKeyHelpers.WriteWithLength(bw1, salt);
+                                bw1.Write(BitConverter.GetBytes(rounds).Reverse().ToArray());
+                            }
+                            AsymmetricKeyHelpers.WriteWithLength(bw, ms1.ToArray());
+                        }
+                    }
 
                     // bw.Write(BitConverter.GetBytes(N).Reverse().ToArray()); // number of keys N
                     bw.Write(new byte[] { 0, 0, 0, 1 }); // number of keys N = 1
@@ -271,22 +330,31 @@ namespace GMax.Security
                     // writing private key
                     using (var ms1 = new MemoryStream())
                     {
-                        // Because key unencrypited checkint is not random
-                        var checkint = 0xef;
                         using (var bw1 = new BinaryWriter(ms1))
                         {
-                            bw1.Write(BitConverter.GetBytes(checkint), 0, 4);
-                            bw1.Write(BitConverter.GetBytes(checkint), 0, 4);
+                            var checkint = new byte[4];
+                            Rng.Fill(checkint);
+                            bw1.Write(checkint, 0, 4);
+                            bw1.Write(checkint, 0, 4);
                             keyParams.ExportPrivateKeyAsOpenSSH(bw1);
-                            AsymmetricKeyHelpers.WriteWithLength(bw1, Encoding.ASCII.GetBytes(ppkParams.Comment));
+                            AsymmetricKeyHelpers.WriteWithLength(bw1, commentEncoding.GetBytes(ppkParams.Comment));
                             // pad out the encrypted section
                             byte padvalue = 1;
-                            while ((ms1.Length & 15) != 0)
+                            do 
                             {
                                 bw1.Write(padvalue++);
-                            };
+                            } while ((ms1.Length & 15) != 0);
                         }
-                        AsymmetricKeyHelpers.WriteWithLength(bw, ms1.ToArray());
+                        if (securePassword == null)
+                        {
+                            AsymmetricKeyHelpers.WriteWithLength(bw, ms1.ToArray());
+                        }
+                        else
+                        {
+                            var encrypted = Helpers.CryptOpenSSH(ms1.ToArray(), salt, rounds, securePassword);
+                            AsymmetricKeyHelpers.WriteWithLength(bw, encrypted);
+                        }
+
                     }
                 }
                 sb.Append(Helpers.SplitBase64(ms.ToArray(), 64));
